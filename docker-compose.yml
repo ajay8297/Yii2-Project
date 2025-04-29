@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  app:
+    image: ajay8297/yii2-swarm-demo:latest
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+    volumes:
+      - app-data:/var/www/html
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: overlay
+
+volumes:
+  app-data:
