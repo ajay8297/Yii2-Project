@@ -2,19 +2,24 @@
 - hosts: all
   become: yes
   tasks:
-    - name: Update apt cache
-      apt:
+    - name: Update yum cache
+      yum:
         update_cache: yes
 
     - name: Install required packages
-      apt:
+      yum:
         name:
-          - docker.io
-          - docker-compose
+          - docker
           - nginx
           - git
           - curl
         state: present
+
+    - name: Install docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
 
     - name: Start and enable Docker
       service:
@@ -29,7 +34,7 @@
     - name: Copy NGINX configuration
       template:
         src: templates/nginx.conf.j2
-        dest: /etc/nginx/sites-available/default
+        dest: /etc/nginx/conf.d/default.conf
         mode: '0644'
       notify: Restart NGINX
 
