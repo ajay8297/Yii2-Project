@@ -1,0 +1,63 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - nginx
+          - git
+          - curl
+        state: present
+
+    - name: Start and enable Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Initialize Docker Swarm
+      shell: docker swarm init
+      ignore_errors: yes
+
+    - name: Copy NGINX configuration
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/default
+        mode: '0644'
+      notify: Restart NGINX
+
+    - name: Ensure NGINX is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Create app directory
+      file:
+        path: /opt/yii2-swarm-demo
+        state: directory
+        mode: '0755'
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: ../docker-compose.yml
+        dest: /opt/yii2-swarm-demo/docker-compose.yml
+        mode: '0644'
+
+    - name: Deploy Docker Swarm service
+      shell: docker stack deploy -c /opt/yii2-swarm-demo/docker-compose.yml yii2
+      args:
+        chdir: /opt/yii2-swarm-demo
+
+  handlers:
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted
